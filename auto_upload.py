@@ -1,25 +1,17 @@
 import os
-import time
-import random
 import requests
+import random
 import hashlib
+import pickle
 from moviepy.editor import VideoFileClip, AudioFileClip
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-import pickle
 
-PEXELS_API="qYSrqLORUC6G5NExtzE4ij69cGj919KOwGaztP6txDwzNkD5YQ9AMAm"
-
-WAIT=3600
-
-if not os.path.exists("videos"):
-    os.makedirs("videos")
-
+PEXELS_API="qYSrqLORUC6G5NExtzE4ij69cGjH919KOwGaztP6txDwzNkD5YQ9AMAm"
 
 def get_hash(file):
     with open(file,'rb') as f:
         return hashlib.md5(f.read()).hexdigest()
-
 
 def downloaded_before(h):
 
@@ -29,18 +21,16 @@ def downloaded_before(h):
     with open("uploaded.txt") as f:
         return h in f.read()
 
-
 def save_hash(h):
 
     with open("uploaded.txt","a") as f:
         f.write(h+"\n")
 
-
 def download_video():
 
     query=random.choice(["cat","dog"])
 
-    url=f"https://api.pexels.com/videos/search?query={query}&orientation=portrait&per_page=20"
+    url=f"https://api.pexels.com/videos/search?query={query}&orientation=portrait&per_page=15"
 
     headers={
         "Authorization":PEXELS_API
@@ -48,11 +38,15 @@ def download_video():
 
     r=requests.get(url,headers=headers).json()
 
+    if "videos" not in r or len(r["videos"]) == 0:
+        print("API video bulamadı")
+        return None
+
     video=r["videos"][0]["video_files"][0]["link"]
 
     data=requests.get(video)
 
-    path="videos/api_video.mp4"
+    path="video.mp4"
 
     with open(path,"wb") as f:
         f.write(data.content)
@@ -70,7 +64,7 @@ def add_music(video):
 
     final=clip.set_audio(audio)
 
-    output="videos/final.mp4"
+    output="final.mp4"
 
     final.write_videofile(output)
 
@@ -112,33 +106,32 @@ def upload(video):
     print("Video yüklendi:",response["id"])
 
 
-while True:
+print("Video indiriliyor...")
 
-    files=os.listdir("videos")
+video=download_video()
 
-    videos=[f for f in files if f.endswith(".mp4")]
+if video is None:
+    print("Video bulunamadı script bitiyor")
+    exit()
 
-    if videos:
-        video="videos/"+videos[0]
-    else:
-        print("Video yok API'den indiriliyor")
-        video=download_video()
+h=get_hash(video)
 
-    h=get_hash(video)
-
-    if downloaded_before(h):
-        os.remove(video)
-        continue
-
-    final=add_music(video)
-
-    upload(final)
-
-    save_hash(h)
-
+if downloaded_before(h):
+    print("Video daha önce yüklenmiş")
     os.remove(video)
-    os.remove(final)
+    exit()
 
-    print("Video yüklendi ve silindi")
+print("Müzik ekleniyor...")
 
-    time.sleep(WAIT)
+final=add_music(video)
+
+print("YouTube'a yükleniyor...")
+
+upload(final)
+
+save_hash(h)
+
+os.remove(video)
+os.remove(final)
+
+print("Tamamlandı")
