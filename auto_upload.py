@@ -9,28 +9,48 @@ from googleapiclient.http import MediaFileUpload
 
 PEXELS_API="qYSrqLORUC6G5NExtzE4ij69cGjH919KOwGaztP6txDwzNkD5YQ9AMAm"
 
+LOG_FILE="uploaded.txt"
+
+
 def get_hash(file):
     with open(file,'rb') as f:
         return hashlib.md5(f.read()).hexdigest()
 
+
 def downloaded_before(h):
 
-    if not os.path.exists("uploaded.txt"):
+    if not os.path.exists(LOG_FILE):
         return False
 
-    with open("uploaded.txt") as f:
-        return h in f.read()
+    with open(LOG_FILE) as f:
+        lines=f.read().splitlines()
+
+    return h in lines
+
 
 def save_hash(h):
 
-    with open("uploaded.txt","a") as f:
-        f.write(h+"\n")
+    if not os.path.exists(LOG_FILE):
+        open(LOG_FILE,"w").close()
+
+    with open(LOG_FILE) as f:
+        lines=f.read().splitlines()
+
+    lines.append(h)
+
+    # sadece son 5 video tutulur
+    lines=lines[-5:]
+
+    with open(LOG_FILE,"w") as f:
+        for l in lines:
+            f.write(l+"\n")
+
 
 def download_video():
 
     query=random.choice(["cat","dog"])
 
-    url=f"https://api.pexels.com/videos/search?query={query}&orientation=portrait&per_page=15"
+    url=f"https://api.pexels.com/videos/search?query={query}&orientation=portrait&per_page=20"
 
     headers={
         "Authorization":PEXELS_API
@@ -42,16 +62,29 @@ def download_video():
         print("API video bulamadı")
         return None
 
-    video=r["videos"][0]["video_files"][0]["link"]
+    videos=r["videos"]
 
-    data=requests.get(video)
+    random.shuffle(videos)
 
-    path="video.mp4"
+    for v in videos:
 
-    with open(path,"wb") as f:
-        f.write(data.content)
+        file=v["video_files"][0]["link"]
 
-    return path
+        try:
+
+            data=requests.get(file,timeout=30)
+
+            path="video.mp4"
+
+            with open(path,"wb") as f:
+                f.write(data.content)
+
+            return path
+
+        except:
+            continue
+
+    return None
 
 
 def add_music(video):
@@ -66,7 +99,7 @@ def add_music(video):
 
     output="final.mp4"
 
-    final.write_videofile(output)
+    final.write_videofile(output,codec="libx264",audio_codec="aac")
 
     return output
 
@@ -78,6 +111,14 @@ def upload(video):
 
     youtube=build("youtube","v3",credentials=creds)
 
+    title=random.choice([
+        "Cute Cats & Dogs 🐶🐱 #shorts",
+        "Funny Cat & Dog Moment 🐱🐶 #shorts",
+        "Cute Animal Friends 🐶🐱 #shorts"
+    ])
+
+    description="Cute cats and dogs 🐶🐱 #shorts #cats #dogs #pets #animals"
+
     request=youtube.videos().insert(
 
         part="snippet,status",
@@ -85,9 +126,9 @@ def upload(video):
         body={
 
             "snippet":{
-                "title":"Cute Cats & Dogs 🐶🐱 #shorts",
-                "description":"Cute cats and dogs 🐶🐱 #shorts #cats #dogs #pets",
-                "tags":["shorts","cats","dogs","pets"],
+                "title":title,
+                "description":description,
+                "tags":["shorts","cats","dogs","pets","animals"],
                 "categoryId":"15"
             },
 
@@ -114,12 +155,14 @@ if video is None:
     print("Video bulunamadı script bitiyor")
     exit()
 
+
 h=get_hash(video)
 
 if downloaded_before(h):
-    print("Video daha önce yüklenmiş")
+    print("Video daha önce yüklenmiş, yeni video aranıyor")
     os.remove(video)
     exit()
+
 
 print("Müzik ekleniyor...")
 
