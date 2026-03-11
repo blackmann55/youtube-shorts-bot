@@ -16,11 +16,17 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Kütüphaneleri yükle
+      - name: Sistem paketleri
         run: |
+          sudo apt update
+          sudo apt install ffmpeg -y
+
+      - name: Python kütüphaneleri
+        run: |
+          pip install --upgrade pip
+          pip install moviepy
           pip install google-api-python-client
           pip install google-auth-oauthlib
-          pip install moviepy
           pip install requests
 
       - name: Botu çalıştır
