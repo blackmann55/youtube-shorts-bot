@@ -91,7 +91,7 @@ def add_music(video):
 
     clip=VideoFileClip(video)
 
-    audio=AudioFileClip("music/music.mp3")
+    audio=AudioFileClip("mucis/music.mp3")
 
     audio=audio.set_duration(clip.duration)
 
@@ -178,3 +178,4 @@ os.remove(video)
 os.remove(final)
 
 print("Tamamlandı")
+
