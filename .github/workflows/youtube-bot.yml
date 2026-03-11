@@ -2,6 +2,8 @@ name: YouTube Shorts Bot
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
 
 jobs:
   run-bot:
